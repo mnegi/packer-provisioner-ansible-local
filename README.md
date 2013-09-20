@@ -78,6 +78,12 @@ And use them like this:
 
 ## Configuration Reference
 
+The reference of available configuration options is listed below.
+
+Required parameters:
+
+ * `playbook_file` (string) - The playbook file to be executed by ansible. This file must exist on your local system and will be uploaded to the remote machine.
+
 ## Execute Command
 
 By default, Packer uses the following command to execute Ansible:
