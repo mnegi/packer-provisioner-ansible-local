@@ -69,24 +69,20 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	if err != nil {
 		errs = packer.MultiErrorAppend(errs, err)
 	}
-
 	for _, path := range p.config.PlaybookPaths {
 		err := validateFileConfig(path, "playbook_paths", false)
 		if err != nil {
 			errs = packer.MultiErrorAppend(errs, err)
 		}
 	}
-
 	for _, path := range p.config.RolePaths {
 		if err := validateDirConfig(path, "role_paths"); err != nil {
 			errs = packer.MultiErrorAppend(errs, err)
 		}
 	}
-
 	if errs != nil && len(errs.Errors) > 0 {
 		return errs
 	}
-
 	return nil
 }
 
@@ -131,7 +127,6 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 	if err := p.executeAnsible(ui, comm); err != nil {
 		return fmt.Errorf("Error executing Ansible: %s", err)
 	}
-
 	return nil
 }
 
