@@ -60,7 +60,7 @@ You can also upload roles and additional playbooks:
 }
 ```
 
-And use them like like this:
+And use them like this:
 
 ```YAML
 # local.yml
