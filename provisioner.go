@@ -122,7 +122,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicatior) error {
 		}
 	}
 
-	if err := p.executeAnsbile(ui, comm); err != nil {
+	if err := p.executeAnsible(ui, comm); err != nil {
 		return fmt.Errorf("Error executing Ansible: %s", err)
 	}
 
@@ -135,7 +135,7 @@ func (p *Provisioner) Cancel() {
 	os.Exit(0)
 }
 
-func (p *Provisioner) executeAnsbile(ui packer.Ui, comm packer.Communicator) error {
+func (p *Provisioner) executeAnsible(ui packer.Ui, comm packer.Communicator) error {
 	command := fmt.Sprintf("ansible-playbook %s --verbose --connection=local",
 		p.config.PlaybookFile)
 	ui.Message(fmt.Sprintf("Executing Ansible: %s" command))
