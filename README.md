@@ -2,15 +2,32 @@
 
 Type: ansible-local
 
-The local Ansible provisioner configures Ansible to run on the machine by
-Packer from local playbook and role files. Playbooks and roles can be
-uploaded from your local machine to the remote machine. Ansible is run in
-local mode via the ansible-playbook command.
+The local Ansible provisioner configures Ansible to run on the machine by Packer from local Playbook and Role files.  Playbooks and Roles can be uploaded from your local machine to the remote machine.  Ansible is run in local mode via the ansible-playbook command.
+
+## Install
+
+Download and build Packer from source as described [here](https://github.com/mitchellh/packer#developing-packer).
+
+Next, clone this repository into `$GOPATH/src/github.com/kelseyhightower/packer-provisioner-ansible-local`.  Then build the packer-provisioner-ansible-local binary:
+
+```
+go build -o /usr/local/packer/packer-provisioner-ansible-local \
+plugin/provisioner-ansible-local/main.go
+```
+
+Now configure Packer to pick up the new provisioner:
+
+```
+{
+  "provisioners": {
+    "ansible-local": "/usr/local/packer/packer-provisioner-ansible-local"
+  }
+}
+```
 
 ## Basic Example
 
-The example below is fully functional and expects the configured playbook
-file to exist relative to your working directory:
+The example below is fully functional and expects the configured Playbook file to exist relative to your working directory:
 
 ```JSON
 {
@@ -41,7 +58,7 @@ file to exist relative to your working directory:
 }
 ```
 
-You can also upload roles and additional playbooks:
+You can also upload roles and additional Playbooks:
 
 ```JSON
 {
@@ -88,10 +105,11 @@ Optional parameters:
 
  * `playbook_paths` (array of strings) - This is an array of paths to playbook files on your local system. These will be uploaded to the remote machine under `staging_directory`/playbooks. By default, this is empty.
  * `role_paths` (array of strings) - This is an array of paths to role directories on your local system. These will be uploaded to the remote machine under `staging_directory`/roles. By default, this is empty.
- * `staging_directory` (string) - This is the directory where all the configuration of Ansible by Packer will be placed. By default this is "/tmp/packer-provisioner-ansible-local". This directory doesn't need to exist but must have proper permissions so that the SSH user that Packer uses is able to create directories and write into this folder. If the permissions are not correct, use a shell provisioner prior to this to configure it properly.
+ * `staging_directory` (string) - This is the directory where all the configuration of Ansible by Packer will be placed.  By default this is "/tmp/packer-provisioner-ansible-local".  This directory doesn't need to exist but must have proper permissions so that the SSH user that Packer uses is able to create directories and write into this folder. If the permissions are not correct, use a shell provisioner prior to this to configure it properly.
 
 ## Execute Command
 
 By default, Packer uses the following command to execute Ansible:
 
     ansible-playbook {{.PlaybookFile}} -c local -i "127.0.0.1,"
+
