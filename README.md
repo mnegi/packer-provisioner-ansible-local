@@ -41,6 +41,41 @@ file to exist relative to your working directory:
 }
 ```
 
+You can also upload roles and additional playbooks:
+
+```JSON
+{
+  "provisioners": [
+    {
+      "type": "ansible-local",
+      "playbook_file": "local.yml",
+      "playbook_paths": [
+        "playbooks/mysql.yml"
+      ],
+      "role_paths": [
+        "roles/nodejs"
+      ]
+    }
+  ]
+}
+```
+
+And use them like like this:
+
+```YAML
+# local.yml
+---
+- include: playbooks/mysql.yml
+- hosts: 127.0.0.1
+  sudo: yes
+  connection: local
+  tasks:
+    - name: "ensure nginx is installed"
+      yum: name="nginx" state=installed enablerepo="epel"
+  roles:
+    - nodejs
+```
+
 ## Configuration Reference
 
 ## Execute Command
