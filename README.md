@@ -9,6 +9,14 @@ local mode via the ansible-playbook command.
 
 ## Basic Example
 
+The example below is fully functional and expects the configured playbook
+file to exist relative to your working directory:
+
+    {
+      "type": "ansible-local",
+      "playbook_file": "local.yml"
+    }
+
 ## Configuration Reference
 
 ## Execute Command
