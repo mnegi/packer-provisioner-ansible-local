@@ -65,19 +65,19 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	}
 
 	// Validation
-	err := validateFileConfig(p.config.PlaybookFile, "playbook_file", true)
+	err = validateFileConfig(p.config.PlaybookFile, "playbook_file", true)
 	if err != nil {
 		errs = packer.MultiErrorAppend(errs, err)
 	}
 
-	for i, path := range p.config.PlaybookPaths {
-		err := validateDirConfig(path, "playbook_paths", false)
+	for _, path := range p.config.PlaybookPaths {
+		err := validateDirConfig(path, "playbook_paths")
 		if err != nil {
 			errs = packer.MultiErrorAppend(errs, err)
 		}
 	}
 
-	for i, path := range p.config.RolePaths {
+	for _, path := range p.config.RolePaths {
 		if err := validateDirConfig(path, "role_paths"); err != nil {
 			errs = packer.MultiErrorAppend(errs, err)
 		}
@@ -90,12 +90,12 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	return nil
 }
 
-func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicatior) error {
+func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 	ui.Say("Provisioning with Ansible...")
 
 	ui.Message("Creating Ansible staging directory...")
 	if err := p.createDir(ui, comm, p.config.StagingDir); err != nil {
-		return fmt.Errorf("Error creating staging staging directory: %s", err)
+		return fmt.Errorf("Error creating staging directory: %s", err)
 	}
 
 	ui.Message("Uploading main Playbook file...")
@@ -105,7 +105,7 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicatior) error {
 
 	if len(p.config.RolePaths) > 0 {
 		ui.Message("Uploading role directories...")
-		for i, path := range p.config.RolePaths {
+		for _, path := range p.config.RolePaths {
 			targetPath := fmt.Sprintf("%s/roles", p.config.StagingDir)
 			if err := p.uploadDirectory(ui, comm, targetPath, path); err != nil {
 				return fmt.Errorf("Error uploading roles: %s", err)
@@ -113,9 +113,9 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicatior) error {
 		}
 	}
 
-	if len(p.config.Playbooks) > 0 {
+	if len(p.config.PlaybookPaths) > 0 {
 		ui.Message("Uploading additional Playbooks...")
-		for i, path := range p.config.Playbooks {
+		for _, path := range p.config.PlaybookPaths {
 			if err := p.upload(ui, comm, path); err != nil {
 				return fmt.Errorf("Error uploading playbooks: %s", err)
 			}
@@ -138,7 +138,7 @@ func (p *Provisioner) Cancel() {
 func (p *Provisioner) executeAnsible(ui packer.Ui, comm packer.Communicator) error {
 	command := fmt.Sprintf("ansible-playbook %s --verbose --connection=local",
 		p.config.PlaybookFile)
-	ui.Message(fmt.Sprintf("Executing Ansible: %s" command))
+	ui.Message(fmt.Sprintf("Executing Ansible: %s", command))
 	cmd := &packer.RemoteCmd{
 		Command: command,
 	}
@@ -158,6 +158,7 @@ func validateDirConfig(path string, config string) error {
 	} else if !info.IsDir() {
 		return fmt.Errorf("%s: %s must point to a directory", config, path)
 	}
+	return nil
 }
 
 func validateFileConfig(name string, config string, req bool) error {
@@ -172,9 +173,10 @@ func validateFileConfig(name string, config string, req bool) error {
 	} else if info.IsDir() {
 		return fmt.Errorf("%s: %s must point to a file", config, name)
 	}
+	return nil
 }
 
-func (p *Provisioner) upload(comm packer.Communicatior, src string) error {
+func (p *Provisioner) upload(ui packer.Ui, comm packer.Communicator, src string) error {
 	f, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("Error opening: %s", err)
@@ -186,4 +188,35 @@ func (p *Provisioner) upload(comm packer.Communicatior, src string) error {
 		return fmt.Errorf("Error uploading %s: %s", src, err)
 	}
 	return nil
+}
+
+func (p *Provisioner) createDir(ui packer.Ui, comm packer.Communicator, dir string) error {
+	ui.Message(fmt.Sprintf("Creating directory: %s", dir))
+	cmd := &packer.RemoteCmd{
+		Command: fmt.Sprintf("mkdir -p '%s'", dir),
+	}
+
+	if err := cmd.StartWithUi(comm, ui); err != nil {
+		return err
+	}
+
+	if cmd.ExitStatus != 0 {
+		return fmt.Errorf("Non-zero exit status.")
+	}
+
+	return nil
+}
+
+func (p *Provisioner) uploadDirectory(ui packer.Ui, comm packer.Communicator, dst string, src string) error {
+	if err := p.createDir(ui, comm, dst); err != nil {
+		return err
+	}
+
+	// Make sure there is a trailing "/" so that the directory isn't
+	// created on the other side.
+	if src[len(src)-1] != '/' {
+		src = src + "/"
+	}
+
+	return comm.UploadDir(dst, src, nil)
 }
