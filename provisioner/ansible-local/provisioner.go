@@ -105,9 +105,10 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 
 	if len(p.config.RolePaths) > 0 {
 		ui.Message("Uploading role directories...")
-		for _, path := range p.config.RolePaths {
-			targetPath := fmt.Sprintf("%s/roles", p.config.StagingDir)
-			if err := p.uploadDirectory(ui, comm, targetPath, path); err != nil {
+		for _, src := range p.config.RolePaths {
+			dest := filepath.Join(p.config.StagingDir, "roles",
+				filepath.Base(src))
+			if err := p.uploadDirectory(ui, comm, dest, src); err != nil {
 				return fmt.Errorf("Error uploading roles: %s", err)
 			}
 		}
