@@ -84,6 +84,12 @@ Required parameters:
 
  * `playbook_file` (string) - The playbook file to be executed by ansible. This file must exist on your local system and will be uploaded to the remote machine.
 
+Optional parameters:
+
+ * `playbook_paths` (array of strings) - This is an array of paths to playbook files on your local system. These will be uploaded to the remote machine under `staging_directory`/playbooks. By default, this is empty.
+ * `role_paths` (array of strings) - This is an array of paths to role directories on your local system. These will be uploaded to the remote machine under `staging_directory`/roles. By default, this is empty.
+ * `staging_directory` (string) - This is the directory where all the configuration of Ansible by Packer will be placed. By default this is "/tmp/packer-provisioner-ansible-local". This directory doesn't need to exist but must have proper permissions so that the SSH user that Packer uses is able to create directories and write into this folder. If the permissions are not correct, use a shell provisioner prior to this to configure it properly.
+
 ## Execute Command
 
 By default, Packer uses the following command to execute Ansible:
