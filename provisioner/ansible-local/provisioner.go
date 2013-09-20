@@ -71,7 +71,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
 	}
 
 	for _, path := range p.config.PlaybookPaths {
-		err := validateDirConfig(path, "playbook_paths")
+		err := validateFileConfig(path, "playbook_paths", false)
 		if err != nil {
 			errs = packer.MultiErrorAppend(errs, err)
 		}
@@ -99,16 +99,17 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 	}
 
 	ui.Message("Uploading main Playbook file...")
-	if err := p.upload(ui, comm, p.config.PlaybookFile); err != nil {
+	src := p.config.PlaybookFile
+	dst := filepath.Join(p.config.StagingDir, filepath.Base(src))
+	if err := p.uploadFile(ui, comm, dst, src); err != nil {
 		return fmt.Errorf("Error uploading main playbook: %s", err)
 	}
 
 	if len(p.config.RolePaths) > 0 {
 		ui.Message("Uploading role directories...")
 		for _, src := range p.config.RolePaths {
-			dest := filepath.Join(p.config.StagingDir, "roles",
-				filepath.Base(src))
-			if err := p.uploadDirectory(ui, comm, dest, src); err != nil {
+			dst := filepath.Join(p.config.StagingDir, "roles", filepath.Base(src))
+			if err := p.uploadDir(ui, comm, dst, src); err != nil {
 				return fmt.Errorf("Error uploading roles: %s", err)
 			}
 		}
@@ -116,8 +117,12 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
 
 	if len(p.config.PlaybookPaths) > 0 {
 		ui.Message("Uploading additional Playbooks...")
-		for _, path := range p.config.PlaybookPaths {
-			if err := p.upload(ui, comm, path); err != nil {
+		if err := p.createDir(ui, comm, filepath.Join(p.config.StagingDir, "playbooks")); err != nil {
+			return fmt.Errorf("Error creating playbooks directory: %s", err)
+		}
+		for _, src := range p.config.PlaybookPaths {
+			dst := filepath.Join(p.config.StagingDir, "playbooks", filepath.Base(src))
+			if err := p.uploadFile(ui, comm, dst, src); err != nil {
 				return fmt.Errorf("Error uploading playbooks: %s", err)
 			}
 		}
@@ -137,10 +142,13 @@ func (p *Provisioner) Cancel() {
 }
 
 func (p *Provisioner) executeAnsible(ui packer.Ui, comm packer.Communicator) error {
-	playbook := filepath.Join(p.config.StagingDir,
-		filepath.Base(p.config.PlaybookFile))
-	command := fmt.Sprintf("ansible-playbook %s -c local -i %s",
-		playbook, `"127.0.0.1,"`)
+	playbook := filepath.Join(p.config.StagingDir, filepath.Base(p.config.PlaybookFile))
+
+	// The inventory must be set to "127.0.0.1,".  The comma is important
+	// as its the only way to override the ansible inventory when dealing
+	// with a single host.
+	command := fmt.Sprintf("ansible-playbook %s -c local -i %s", playbook, `"127.0.0.1,"`)
+
 	ui.Message(fmt.Sprintf("Executing Ansible: %s", command))
 	cmd := &packer.RemoteCmd{
 		Command: command,
@@ -179,14 +187,13 @@ func validateFileConfig(name string, config string, req bool) error {
 	return nil
 }
 
-func (p *Provisioner) upload(ui packer.Ui, comm packer.Communicator, src string) error {
+func (p *Provisioner) uploadFile(ui packer.Ui, comm packer.Communicator, dst, src string) error {
 	f, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("Error opening: %s", err)
 	}
 	defer f.Close()
 
-	dst := filepath.Join(p.config.StagingDir, filepath.Base(src))
 	if err = comm.Upload(dst, f); err != nil {
 		return fmt.Errorf("Error uploading %s: %s", src, err)
 	}
@@ -198,19 +205,16 @@ func (p *Provisioner) createDir(ui packer.Ui, comm packer.Communicator, dir stri
 	cmd := &packer.RemoteCmd{
 		Command: fmt.Sprintf("mkdir -p '%s'", dir),
 	}
-
 	if err := cmd.StartWithUi(comm, ui); err != nil {
 		return err
 	}
-
 	if cmd.ExitStatus != 0 {
 		return fmt.Errorf("Non-zero exit status.")
 	}
-
 	return nil
 }
 
-func (p *Provisioner) uploadDirectory(ui packer.Ui, comm packer.Communicator, dst string, src string) error {
+func (p *Provisioner) uploadDir(ui packer.Ui, comm packer.Communicator, dst, src string) error {
 	if err := p.createDir(ui, comm, dst); err != nil {
 		return err
 	}
@@ -220,6 +224,5 @@ func (p *Provisioner) uploadDirectory(ui packer.Ui, comm packer.Communicator, ds
 	if src[len(src)-1] != '/' {
 		src = src + "/"
 	}
-
 	return comm.UploadDir(dst, src, nil)
 }
