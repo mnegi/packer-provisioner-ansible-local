@@ -137,7 +137,7 @@ func (p *Provisioner) Cancel() {
 
 func (p *Provisioner) executeAnsible(ui packer.Ui, comm packer.Communicator) error {
 	command := fmt.Sprintf("ansible-playbook %s --verbose --connection=local",
-		p.config.PlaybookFile)
+		filepath.Join(p.config.StagingDir, filepath.Base(p.config.PlaybookFile)))
 	ui.Message(fmt.Sprintf("Executing Ansible: %s", command))
 	cmd := &packer.RemoteCmd{
 		Command: command,
