@@ -15,7 +15,7 @@ go build -o /usr/local/packer/packer-provisioner-ansible-local \
 plugin/provisioner-ansible-local/main.go
 ```
 
-Now configure Packer to pick up the new provisioner:
+Now [configure Packer](http://www.packer.io/docs/other/core-configuration.html) to pick up the new provisioner:
 
 ```
 {
